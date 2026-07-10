@@ -1,0 +1,85 @@
+---
+# Hypervisor sample vars file
+
+# Which lab to be deployed into (Ex scalelab)
+lab: scalelab
+
+ssh_public_key_file: ~/.ssh/id_rsa.pub
+
+install_tc: true
+
+# Setup and use coredns instead of dnsmasq
+setup_coredns: true
+
+# Enables using DHCP instead of relying on static network configuration for VMs
+setup_hv_vm_dhcp: false
+
+hv_vm_generate_manifests: false
+
+# Types: sno, compact, standard, mixed, jumbo
+# sno = 1 node per cluster
+# compact = 3 nodes per cluster
+# standard = 5 nodes or more per cluster (3 control-plane, 2 or more workers)
+# mixed = provisions sno, compact, and standard as determined by below counts
+# jumbo = all vms for the one cluster (Can not be combined because consumes all available vms)
+hv_vm_manifest_type: standard
+
+# If hv_vm_manifest_type is set to mixed, compact or standard, use these vars to adjust the count of clusters and size of standard clusters
+# sno_cluster_count does not apply when hv_vm_manifest_type is set to sno
+# Careful not to exceed the count of your VMs
+# Example:
+# sno_cluster_count: 442
+# compact_cluster_count: 100
+# standard_cluster_count: 100
+# standard_cluster_node_count: 5
+# Requires 1242 VMS (442 * 1) + (100 * 3) + (100 * 5) when set to mixed
+sno_cluster_count: 0
+compact_cluster_count: 0
+standard_cluster_count: 4
+standard_cluster_node_count: 15
+
+# The cluster imageset used in the manifests
+cluster_image_set: openshift-4.22.3
+
+# Include ACM CRs in the manifests
+hv_vm_manifest_acm_cr: true
+
+# Retrieves the bastion pull-secret instead of below pull-secret
+use_bastion_registry: false
+# Provide pull-secret for connected manifests
+pull_secret: "{{ lookup('file', '../pull-secret.txt') | b64encode }}"
+
+# Setup Hypervisor metrics collection for VMNO deployments
+# Deploy prometheus node_exporter on hypervisor nodes
+# For more configuration options, check ansible/roles/hv-metrics-exporter/vars/main.yaml
+# Do not override the role, just put override below
+setup_hv_metrics: false
+
+################################################################################
+# Hugepages Configuration
+################################################################################
+
+# Enable hugepages on hypervisors
+enable_hugepages: false
+
+# Hugepage size for hypervisors: 2M or 1G
+hugepage_size: "1G"
+
+# Number of hugepages to allocate on hypervisors (e.g., 64 for 64GB of 1G hugepages)
+# Calculate based on total memory and VM requirements
+hugepage_count: 64
+
+# Additional kernel parameters for performance tuning
+additional_kernel_params:
+  - "intel_iommu=on"
+  - "iommu=pt"
+  - "isolcpus=2-15,18-31"
+
+# Enable hugepages for VMs
+vm_hugepages: false
+
+# Enable vNUMA for performance (recommended with hugepages)
+vnuma_enabled: false
+
+# Enable IGB NICs for VMs
+vm_igb_nics: false
