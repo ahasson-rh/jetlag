@@ -1,0 +1,218 @@
+---
+# Sample vars file
+################################################################################
+# Lab & cluster infrastructure vars
+################################################################################
+# Which lab to be deployed into (Ex scalelab)
+lab: scalelab
+# Which cloud in the lab environment (Ex cloud42)
+lab_cloud: cloud49
+
+# Either mno or sno
+cluster_type: mno
+
+# Applies to mno clusters
+worker_node_count: 0
+
+# Set ocp_build to "ga", `dev`, or `ci` to pick a specific nightly build
+ocp_build: "ga"
+
+# ocp_version is used in conjunction with ocp_build
+# For "ga" builds, examples are "latest-4.17", "latest-4.16", "4.17.17" or "4.16.35"
+# For "dev" builds, examples are "candidate-4.17", "candidate-4.16" or "latest"
+# For "ci" builds, an example is "4.19.0-0.nightly-2025-02-25-035256"
+ocp_version: "latest-4.22"
+
+# Set to true ONLY if you have a public routable vlan in your scalelab or performancelab cloud.
+# Autoconfigures cluster_name, base_dns_name, controlplane_network_interface_idx, controlplane_network,
+# controlplane_network_prefix, and controlplane_network_gateway to the values required for your cloud's public VLAN.
+# SNO configures only the first cluster on the api dns resolvable address
+# MNO/SNO still requires the correct value for bastion_controlplane_interface
+# It is required to comment out controlplane_network and controlplane_network_prefix in the Network Configuration
+public_vlan: false
+cluster_name: acm-acs-scale
+
+# SNOs only require a single IP address and can be deployed using the lab DHCP interface instead of a private or
+# public vlan network. Set to true to have your SNO deployed on the public lab DHCP network.
+# Cannot combine public_vlan and sno_use_lab_dhcp
+sno_use_lab_dhcp: false
+
+# Enables FIPs security standard
+enable_fips: false
+
+#Enables the TechPreviewNoUpgrade feature set
+enable_techpreview: false
+
+# Enables Operators CNV and LSO install at deployment timeframe (GA releases only)
+enable_cnv_install: false
+
+ssh_private_key_file: ~/.ssh/id_rsa
+ssh_public_key_file: ~/.ssh/id_rsa.pub
+# Place your pull-secret.txt in the base directory of the cloned jetlag repo, Example:
+# [root@<bastion> jetlag]# ls pull-secret.txt
+pull_secret: "{{ lookup('file', '../pull-secret.txt') }}"
+
+################################################################################
+# Bastion node vars
+################################################################################
+bastion_cluster_config_dir: /root/{{ cluster_type }}
+
+smcipmitool_url:
+
+# Network interfaces - these will be auto-configured based on lab and machine type
+# if not explicitly set. To override auto-configuration, uncomment and set values:
+# bastion_lab_interface: eno1np0
+# bastion_controlplane_interface: ens1f0
+
+# Sets up Gogs a self-hosted git service on the bastion
+setup_bastion_gogs: true
+
+# Set to enable and sync container images into a container image registry on the bastion
+setup_bastion_registry: true
+
+# Use in conjunction with ipv6 based clusters
+use_bastion_registry: false
+
+# Set to enable a forward proxy (Squid) for IPv6 clusters to access external registries
+# This is an alternative to setup_bastion_registry - use one or the other
+# When enabled, cluster nodes use the proxy to reach quay.io, registry.redhat.io, etc.
+setup_bastion_proxy: false
+
+# Reset iDRAC service using badfish container (pulls and uses badfish container
+# to clear job queue and reset iDRAC service)
+# reset_idrac: false
+
+# Setup Hypervisor metrics collection for VMNO deployments
+# Sets up Prometheus server on a bastion node and node_exporter on hypervisors
+# Grafana is exposed at http://<bastion_fqdn>:3000 by default
+# Prometheus is exposed on port 9090 instead
+# For more configuration options, see ansible/roles/hv-metrics-server/defaults/main.yaml
+# Do not override the role, just put override below
+setup_hv_metrics: false
+
+################################################################################
+# OCP node vars
+################################################################################
+# Network configuration for all mno/sno cluster nodes
+# This will be auto-configured based on lab and machine type if not explicitly set
+# To override auto-configuration, uncomment and set value:
+# controlplane_lab_interface: eno1np0
+
+# Bond configuration for private network (optional for scale/performance labs)
+# Enable bonding for bastion, controlplane, and worker nodes using 802.3ad mode
+# When enabled, uses the first two network interfaces by default (indices 1 & 2)
+# Only works with private VLANs (public_vlan: false) and homogeneous hardware
+enable_bond: false
+
+# VLAN subinterface on bond configuration (requires enable_bond: true)
+# Enable VLAN subinterface on top of bond0 interface
+# When enabled, creates bond0.<vlan_id> interface with specified VLAN tag
+enable_bond_vlan: false
+# VLAN ID for the subinterface (1-4094)
+bond_vlan_id: 10
+# Name for the VLAN subinterface (defaults to bond0.<vlan_id>)
+# bond_vlan_interface_name: bond0.10
+
+################################################################################
+# Network Configuration
+################################################################################
+# Network variables default to single-stack IPv4 values via role defaults in
+# ansible/roles/create-inventory/defaults/main/networks.yml
+# Only uncomment and set these if you need to override the defaults
+# (e.g., for IPv6 single stack or dual stack configurations).
+#
+# When public_vlan is enabled, these are auto-configured - do NOT set them.
+
+# Single Stack IPv4 (default - no need to uncomment for standard deployments):
+controlplane_network:
+- 198.18.0.0/16
+
+controlplane_network_prefix:
+- 16
+
+cluster_network_cidr:
+- 10.128.0.0/14
+
+cluster_network_host_prefix:
+- 23
+
+service_network_cidr:
+- 172.30.0.0/16
+
+# Single Stack IPv6:
+# controlplane_network:
+# - fd00:198:18:10::/64
+#
+# controlplane_network_prefix:
+# - 64
+#
+# cluster_network_cidr:
+# - fd01::/48
+#
+# cluster_network_host_prefix:
+# - 64
+#
+# service_network_cidr:
+# - fd02::/112
+#
+# Note: In IPv6-only configurations, IPv6 addresses are stored in the 'ip' field
+# in the generated inventory (not 'ipv6'). The 'ipv6' field is only used for
+# dual-stack configurations. CoreDNS templates automatically detect whether the
+# 'ip' field contains an IPv4 or IPv6 address and generate appropriate DNS records.
+
+# Dual Stack (IPv4 + IPv6):
+# All network variables must be lists with two elements [IPv4, IPv6].
+# First element must be IPv4, second must be IPv6.
+#
+# controlplane_network:
+# - 198.18.0.0/16
+# - fd00:198:18:10::/64
+#
+# controlplane_network_prefix:
+# - 16
+# - 64
+#
+# cluster_network_cidr:
+# - 10.128.0.0/14
+# - fd01::/48
+#
+# cluster_network_host_prefix:
+# - 23
+# - 64
+#
+# service_network_cidr:
+# - 172.30.0.0/16
+# - fd02::/112
+
+################################################################################
+# Extra vars
+################################################################################
+# Append override vars below
+
+# Pre-GA content section
+use_prega_content: false
+# prega_idms_link: ""
+setup_coredns: true
+hv_inventory: true
+base_dns_name: rdu2.scalelab.redhat.com
+hv_ip_offset: 25
+hv_ssh_pass: ********
+hv_vm_cpu_count: 4
+hv_vm_memory_size: 8
+hv_vm_disk_size: 100
+controlplane_localstorage_lvm_devices:
+  - /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:1:0
+  - /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:2:0
+controlplane_localstorage_lv_count: 20
+controlplane_localstorage_lv_size: 200G
+controlplane_etcd_on_nvme: true
+worker_localstorage_lvm_devices:
+  - /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:1:0
+  - /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:2:0
+worker_localstorage_lv_count: 10
+worker_localstorage_lv_size: 100G
+localstorage_lvm_volume_mode: Filesystem
+localstorage_disk_volume_mode: Block
+setup_lso: true
+apply_cluster_monitoring_config: true
+prometheus_storage_class: localstorage-sc
