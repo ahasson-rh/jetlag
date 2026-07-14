@@ -30,7 +30,6 @@ ocp_version: "latest-4.22"
 # MNO/SNO still requires the correct value for bastion_controlplane_interface
 # It is required to comment out controlplane_network and controlplane_network_prefix in the Network Configuration
 public_vlan: false
-cluster_name: acm-acs-scale
 
 # SNOs only require a single IP address and can be deployed using the lab DHCP interface instead of a private or
 # public vlan network. Set to true to have your SNO deployed on the public lab DHCP network.
@@ -68,7 +67,7 @@ smcipmitool_url:
 setup_bastion_gogs: true
 
 # Set to enable and sync container images into a container image registry on the bastion
-setup_bastion_registry: true
+setup_bastion_registry: false
 
 # Use in conjunction with ipv6 based clusters
 use_bastion_registry: false
@@ -192,9 +191,12 @@ service_network_cidr:
 # Pre-GA content section
 use_prega_content: false
 # prega_idms_link: ""
+
+cluster_name: acm-acs-scale
+base_dns_name: rdu2.scalelab.redhat.com
+
 setup_coredns: true
 hv_inventory: true
-base_dns_name: rdu2.scalelab.redhat.com
 hv_ip_offset: 25
 hv_ssh_pass: ********
 hv_vm_cpu_count: 4
@@ -206,13 +208,14 @@ controlplane_localstorage_lvm_devices:
 controlplane_localstorage_lv_count: 20
 controlplane_localstorage_lv_size: 200G
 controlplane_etcd_on_nvme: true
-worker_localstorage_lvm_devices:
-  - /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:1:0
-  - /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:2:0
-worker_localstorage_lv_count: 10
-worker_localstorage_lv_size: 100G
-localstorage_lvm_volume_mode: Filesystem
-localstorage_disk_volume_mode: Block
 setup_lso: true
 apply_cluster_monitoring_config: true
 prometheus_storage_class: localstorage-sc
+
+setup_openshift_gitops: true
+gitops_channel: gitops-1.21
+
+wait_until_cluster_stable: false
+remove_assisted_installer_namespace: true
+
+# setup_bastion_minio: true
