@@ -1,0 +1,34 @@
+# Sample ACM Spoke VM Configuration
+# Copy this file to acm-spoke.yml and adjust values for your environment
+
+# Number of ACM spoke clusters to create
+num_spokes: 2
+
+# VM configuration per spoke
+# Each spoke consists of Control Plane (master), Infrastructure (infra), and Worker nodes
+spoke_vm_config:
+  master:
+    # Control plane VMs - typically 3 for HA
+    count: 3
+    vcpu: 4
+    memory: 16384
+    disk_size: 122880
+  infra:
+    # Infrastructure VMs - handles ingress, monitoring, logging
+    count: 1
+    vcpu: 4
+    memory: 16384
+    disk_size: 122880
+  worker:
+    # Worker VMs - runs application workloads
+    count: 2
+    vcpu: 4
+    memory: 16384
+    disk_size: 122880
+
+# Network pool name in OpenNebula
+network_pool: "acm-flat-net"
+
+# VM architecture and boot order
+os_arch: "x86_64"
+boot_order: "network,hd"
