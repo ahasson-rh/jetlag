@@ -1,0 +1,99 @@
+---
+# bastion-opennebula tasks
+# Bootstrap OpenNebula on the bastion for ACM spoke VM allocation
+
+- name: Create OpenNebula data directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+  - /var/lib/opennebula
+  - /var/log/opennebula
+  - /etc/opennebula
+
+- name: Create OpenNebula database directory (SQLite)
+  file:
+    path: /var/lib/opennebula/db
+    state: directory
+    mode: '0700'
+
+- name: Pull OpenNebula frontend container image
+  podman_image:
+    name: quay.io/opennebula/opennebula
+    pull: always
+  register: opennebula_image_pulled
+
+- name: Stop existing OpenNebula container if running
+  containers.podman.podman_container:
+    name: opennebula-frontend
+    state: absent
+  failed_when: false
+
+- name: Start OpenNebula frontend container
+  containers.podman.podman_container:
+    name: opennebula-frontend
+    image: quay.io/opennebula/opennebula:latest
+    state: started
+    restart_policy: always
+    network_mode: host
+    volumes:
+    - /var/lib/opennebula:/var/lib/one
+    - /var/log/opennebula:/var/log/one
+    - /etc/opennebula:/etc/one
+    environment:
+      ONE_AUTH: /var/lib/one/.one/one_auth
+    ports:
+    - "6000:6000"
+    - "6001:6001"
+  register: opennebula_container_started
+
+- name: Wait for OpenNebula to be ready
+  wait_for:
+    port: 6000
+    delay: 5
+    timeout: 60
+  when: opennebula_container_started is changed
+
+- name: Register hypervisors with OpenNebula
+  shell: |
+    set -o pipefail
+    for hv in {{ groups['hv'] | join(' ') }}; do
+      onehost create --name "${hv}" --type kvm --im kvm --vm qemu --net bridge || true
+    done
+  register: hypervisors_registered
+  changed_when: "'Host created' in hypervisors_registered.stdout"
+
+- name: Create flat virtual network pool for ACM spokes
+  block:
+  - name: Generate virtual network template
+    template:
+      src: vnet-acm-flat.j2
+      dest: /tmp/vnet-acm-flat.xml
+
+  - name: Create virtual network in OpenNebula
+    shell: |
+      set -o pipefail
+      onevnet create /tmp/vnet-acm-flat.xml || true
+    register: vnet_created
+    changed_when: "'successfully' in vnet_created.stderr or 'created' in vnet_created.stdout"
+
+- name: Display OpenNebula status
+  debug:
+    msg: |
+      OpenNebula frontend is running
+      ==============================
+      Container: opennebula-frontend
+      API Port: 6000
+      Sunstone Port: 6001
+
+      Check status:
+        podman ps | grep opennebula-frontend
+        onehost list
+        onevnet list
+
+      View registered hypervisors:
+        onehost list
+
+      View virtual networks:
+        onevnet list

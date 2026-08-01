@@ -43,3 +43,5 @@
     when: setup_hv_metrics | default(false) | bool
   - role: bastion-minio
     when: setup_bastion_minio | default(false)
+  - role: bastion-opennebula
+    when: setup_bastion_opennebula | default(false)

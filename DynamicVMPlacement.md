@@ -39,8 +39,8 @@ The primary objective is to use OpenNebula strictly as a declarative resource sc
 ## Component Details
 
 * Bastion Control Machine: Hosts the containerized OpenNebula scheduler. It tracks cluster capacity (vCPU, RAM, Datastore Disk space) and executes matchmaking calculations.
-* KVM Hypervisors (RHEL 9.4): Completely agentless from an IaaS perspective. They run native libvirt to execute workloads, a flat network bridge (br0) for node connectivity, and a containerized sushy-emulator to interface with ACM.
-* Sushy-Emulator (Redfish API Layer): A dynamic gateway container per host that translates ACM’s incoming redfish-virtualmedia+http commands into native local libvirt socket operations.
+* KVM Hypervisors (RHEL 9.4): Completely agentless from an IaaS perspective. They run native libvirt to execute workloads, a flat network bridge (br0) for node connectivity, and a systemd-based sushy-emulator to interface with ACM via Redfish API.
+* Sushy-Emulator (Redfish API Layer): A systemd service running on each hypervisor that translates ACM’s incoming redfish-virtualmedia+http commands into native local libvirt socket operations.
 
 ------------------------------
 ## 3. Automation & Deployment Lifecycles

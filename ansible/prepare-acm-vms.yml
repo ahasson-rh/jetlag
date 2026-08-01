@@ -1,0 +1,245 @@
+---
+# Allocate and prepare ACM spoke VMs via OpenNebula
+#
+# This playbook reads spoke configuration and allocates VMs in dormant (HOLD)
+# state on hypervisors via OpenNebula. VMs are placed according to anti-affinity
+# rules and resource constraints.
+#
+# Example Usage:
+#
+# ansible-playbook -i ansible/inventory/cloud42.local ansible/prepare-acm-vms.yml
+#
+
+- name: Prepare ACM spoke VMs via OpenNebula
+  hosts: bastion
+  vars_files:
+  - vars/lab.yml
+  - vars/acm-spoke.yml
+  tasks:
+  - name: Validate spoke configuration
+    assert:
+      that:
+      - num_spokes is defined
+      - num_spokes | int > 0
+      - spoke_vm_config is defined
+      - spoke_vm_config.master is defined
+      - spoke_vm_config.infra is defined
+      - spoke_vm_config.worker is defined
+      msg: "Spoke configuration (acm-spoke.yml) is invalid"
+
+  - name: Calculate total VMs to allocate
+    set_fact:
+      total_vms: "{{ num_spokes | int * (spoke_vm_config.master.count | int + spoke_vm_config.infra.count | int + spoke_vm_config.worker.count | int) }}"
+
+  - name: Display allocation plan
+    debug:
+      msg: |
+        ACM Spoke VM Allocation Plan:
+        ==============================
+        Number of spokes: {{ num_spokes }}
+        VMs per spoke:
+          - Masters: {{ spoke_vm_config.master.count }}
+          - Infra: {{ spoke_vm_config.infra.count }}
+          - Workers: {{ spoke_vm_config.worker.count }}
+        Total VMs to allocate: {{ total_vms }}
+        Network pool: {{ network_pool }}
+
+  - name: Create anti-affinity groups for all spoke roles
+    shell: |
+      set -o pipefail
+      for spoke_index in $(seq 0 {{ num_spokes | int - 1 }}); do
+        for role in master infra worker; do
+          group_name="spoke-${spoke_index}-${role}s-anti"
+          oneacgroup create --name "${group_name}" --policy "STRICT" || true
+        done
+      done
+    register: affinity_groups_created
+    changed_when: "'successfully' in affinity_groups_created.stderr"
+
+  - name: Create VM templates for each role across all spokes
+    block:
+    - name: Create master VM templates
+      shell: |
+        set -o pipefail
+        for spoke_index in $(seq 0 {{ num_spokes | int - 1 }}); do
+          cat > /tmp/master-spoke-${spoke_index}.vm << 'VMEOF'
+        CPU    = "{{ spoke_vm_config.master.vcpu }}.0"
+        VCPU   = "{{ spoke_vm_config.master.vcpu }}"
+        MEMORY = "{{ spoke_vm_config.master.memory }}"
+        OS     = [ ARCH = "{{ os_arch }}", BOOT = "{{ boot_order }}" ]
+        DISK   = [ TYPE = "file", SIZE = "{{ spoke_vm_config.master.disk_size }}", TARGET = "vda", DRIVER = "raw" ]
+        NIC    = [ NETWORK = "{{ network_pool }}" ]
+        ROLE_AFFINITY_GROUP = "spoke-${spoke_index}-masters-anti"
+        SPOKE_GROUP         = "spoke-${spoke_index}"
+        VMEOF
+        done
+      register: master_template_created
+      changed_when: false
+
+    - name: Create infra VM templates
+      shell: |
+        set -o pipefail
+        for spoke_index in $(seq 0 {{ num_spokes | int - 1 }}); do
+          cat > /tmp/infra-spoke-${spoke_index}.vm << 'VMEOF'
+        CPU    = "{{ spoke_vm_config.infra.vcpu }}.0"
+        VCPU   = "{{ spoke_vm_config.infra.vcpu }}"
+        MEMORY = "{{ spoke_vm_config.infra.memory }}"
+        OS     = [ ARCH = "{{ os_arch }}", BOOT = "{{ boot_order }}" ]
+        DISK   = [ TYPE = "file", SIZE = "{{ spoke_vm_config.infra.disk_size }}", TARGET = "vda", DRIVER = "raw" ]
+        NIC    = [ NETWORK = "{{ network_pool }}" ]
+        ROLE_AFFINITY_GROUP = "spoke-${spoke_index}-infras-anti"
+        SPOKE_GROUP         = "spoke-${spoke_index}"
+        VMEOF
+        done
+      register: infra_template_created
+      changed_when: false
+
+    - name: Create worker VM templates
+      shell: |
+        set -o pipefail
+        for spoke_index in $(seq 0 {{ num_spokes | int - 1 }}); do
+          cat > /tmp/worker-spoke-${spoke_index}.vm << 'VMEOF'
+        CPU    = "{{ spoke_vm_config.worker.vcpu }}.0"
+        VCPU   = "{{ spoke_vm_config.worker.vcpu }}"
+        MEMORY = "{{ spoke_vm_config.worker.memory }}"
+        OS     = [ ARCH = "{{ os_arch }}", BOOT = "{{ boot_order }}" ]
+        DISK   = [ TYPE = "file", SIZE = "{{ spoke_vm_config.worker.disk_size }}", TARGET = "vda", DRIVER = "raw" ]
+        NIC    = [ NETWORK = "{{ network_pool }}" ]
+        ROLE_AFFINITY_GROUP = "spoke-${spoke_index}-workers-anti"
+        SPOKE_GROUP         = "spoke-${spoke_index}"
+        VMEOF
+        done
+      register: worker_template_created
+      changed_when: false
+
+  - name: Instantiate VMs in HOLD state
+    block:
+    - name: Instantiate master VMs
+      shell: |
+        set -o pipefail
+        for spoke_index in $(seq 0 {{ num_spokes | int - 1 }}); do
+          for instance in $(seq 0 {{ spoke_vm_config.master.count | int - 1 }}); do
+            vm_name="spoke-${spoke_index}-master-${instance}"
+            onetemplate instantiate \
+              --hold \
+              --name "${vm_name}" \
+              --user-data=/tmp/master-spoke-${spoke_index}.vm
+          done
+        done
+      register: master_vms_created
+      changed_when: "'successfully' in master_vms_created.stderr or 'created' in master_vms_created.stdout"
+
+    - name: Instantiate infra VMs
+      shell: |
+        set -o pipefail
+        for spoke_index in $(seq 0 {{ num_spokes | int - 1 }}); do
+          for instance in $(seq 0 {{ spoke_vm_config.infra.count | int - 1 }}); do
+            vm_name="spoke-${spoke_index}-infra-${instance}"
+            onetemplate instantiate \
+              --hold \
+              --name "${vm_name}" \
+              --user-data=/tmp/infra-spoke-${spoke_index}.vm
+          done
+        done
+      register: infra_vms_created
+      changed_when: "'successfully' in infra_vms_created.stderr or 'created' in infra_vms_created.stdout"
+
+    - name: Instantiate worker VMs
+      shell: |
+        set -o pipefail
+        for spoke_index in $(seq 0 {{ num_spokes | int - 1 }}); do
+          for instance in $(seq 0 {{ spoke_vm_config.worker.count | int - 1 }}); do
+            vm_name="spoke-${spoke_index}-worker-${instance}"
+            onetemplate instantiate \
+              --hold \
+              --name "${vm_name}" \
+              --user-data=/tmp/worker-spoke-${spoke_index}.vm
+          done
+        done
+      register: worker_vms_created
+      changed_when: "'successfully' in worker_vms_created.stderr or 'created' in worker_vms_created.stdout"
+
+  - name: Verify VM allocation and generate inventory with UUIDs
+    block:
+    - name: Query allocated VMs from OpenNebula
+      shell: |
+        onevm list --json > /root/opennebula-vm-inventory.json
+      register: vm_query
+      changed_when: false
+
+    - name: Read OpenNebula VM inventory
+      slurp:
+        src: /root/opennebula-vm-inventory.json
+      register: opennebula_inventory_raw
+
+    - name: Parse and enrich inventory with libvirt UUIDs
+      set_fact:
+        opennebula_vms_enriched: "{{ opennebula_inventory_raw['content'] | b64decode | from_json }}"
+
+    - name: Query libvirt UUIDs from each hypervisor
+      shell: |
+        set -o pipefail
+        python3 << 'PYEOF'
+        import json
+        import subprocess
+        import sys
+
+        try:
+            # Read OpenNebula inventory
+            with open('/root/opennebula-vm-inventory.json', 'r') as f:
+                inventory = json.load(f)
+
+            # For each VM, query its libvirt UUID
+            for vm in inventory.get('VM', []):
+                vm_id = vm.get('id')
+                vm_name = f"one-{vm_id}"
+                host = vm.get('hostname')
+
+                if not host:
+                    continue
+
+                # SSH to hypervisor and get UUID via virsh
+                try:
+                    cmd = f"ssh root@{host} 'virsh dumpxml {vm_name} 2>/dev/null | grep -oP \"<uuid>\\K[^<]+\"' 2>/dev/null"
+                    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+                    uuid = result.stdout.strip()
+                    if uuid:
+                        vm['domain_uuid'] = uuid
+                except Exception as e:
+                    print(f"Warning: Could not fetch UUID for {vm_name} on {host}: {e}", file=sys.stderr)
+
+        except Exception as e:
+            print(f"Error processing inventory: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        # Write enriched inventory
+        with open('/root/opennebula-vm-inventory.json', 'w') as f:
+            json.dump(inventory, f, indent=2)
+
+        PYEOF
+      register: uuid_query
+      changed_when: false
+      failed_when: false
+
+    - name: Display allocation results
+      debug:
+        msg: |
+          VM Allocation Complete
+          =====================
+          Check /root/opennebula-vm-inventory.json for complete VM inventory with UUIDs
+
+          View allocated VMs:
+            onevm list
+
+          View anti-affinity group assignments:
+            oneacgroup list
+
+          For ACM-Load-Deploy handoff:
+            cat /root/opennebula-vm-inventory.json
+
+          Inventory includes:
+            - OpenNebula VM ID and metadata
+            - Assigned host location
+            - IP and MAC addresses
+            - Spoke group and role affinity information
+            - domain_uuid (for ACM ClusterInstance CR templating)

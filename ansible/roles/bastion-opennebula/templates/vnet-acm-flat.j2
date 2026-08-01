@@ -1,0 +1,13 @@
+NAME="acm-flat-net"
+VN_MAD="bridge"
+BRIDGE="br0"
+DESCRIPTION="Flat network for ACM spoke VMs"
+NETWORK_ADDRESS="{% if controlplane_network[0] | ansible.utils.ipv4 %}{{ controlplane_network[0] | ansible.utils.nthhost(0) }}{% else %}{{ controlplane_network[0] | ansible.utils.nthhost(0) }}{% endif %}"
+NETMASK="{% if controlplane_network[0] | ansible.utils.ipv4 %}{{ controlplane_network[0] | ansible.utils.ipaddr('netmask') }}{% else %}ffff:ffff:ffff:ffff::{% endif %}"
+DNS="{% if labs[lab]['dns'] is defined %}{{ labs[lab]['dns'][0] }}{% else %}8.8.8.8{% endif %}"
+GATEWAY="{% if controlplane_network[0] | ansible.utils.ipv4 %}{{ controlplane_network[0] | ansible.utils.nthhost(1) }}{% else %}{{ controlplane_network[0] | ansible.utils.nthhost(1) }}{% endif %}"
+AR=[
+  TYPE="IP4",
+  IP="{% if controlplane_network[0] | ansible.utils.ipv4 %}{{ controlplane_network[0] | ansible.utils.nthhost(10) }}{% else %}{{ controlplane_network[0] | ansible.utils.nthhost(10) }}{% endif %}",
+  SIZE="{% if controlplane_network[0] | ansible.utils.ipv4 %}{{ controlplane_network[0] | ansible.utils.nthhost(-2) | regex_replace('^.*\.', '') | int - 10 }}{% else %}100{% endif %}"
+]

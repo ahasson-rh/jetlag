@@ -1,0 +1,28 @@
+---
+# Setup hypervisors for ACM spoke VM hosting
+#
+# This playbook prepares hypervisors for dynamic VM allocation via OpenNebula.
+# It configures networking, libvirt, and DNS using dynamic OpenNebula-based DNS.
+#
+# Example Usage:
+#
+# ansible-playbook -i ansible/inventory/cloud42.local ansible/hv-acm-setup.yml
+#
+
+- name: Setup hypervisors for ACM spoke VM hosting
+  hosts: hv
+  vars_files:
+  - vars/lab.yml
+  - vars/hv.yml
+  - vars/acm-spoke.yml
+  pre_tasks:
+  - ansible.builtin.fail:
+      msg: "Hypervisors must be RHEL9"
+    when: ansible_facts['distribution_major_version'] is version('9', '<')
+  roles:
+  - hv-install
+  - hv-network
+  - hv-libvirt
+  - role: hv-setup-disk2
+    when: hostvars[inventory_hostname].disk2_enable | default(false) | bool
+  - hv-acm-coredns

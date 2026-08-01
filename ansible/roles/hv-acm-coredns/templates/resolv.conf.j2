@@ -1,0 +1,6 @@
+# Jetlag CoreDNS resolver configuration
+nameserver 127.0.0.1
+{% if ':' in controlplane_network[0] %}
+nameserver ::1
+{% endif %}
+options single-request-reopen
