@@ -16,9 +16,6 @@
     name:
     - opennebula
     - opennebula-server
-    - opennebula-sunstone
-    - opennebula-gate
-    - opennebula-flow
     state: present
 
 - name: Enable and start OpenNebula services
@@ -28,9 +25,6 @@
     state: started
   loop:
   - opennebula
-  - opennebula-sunstone
-  - opennebula-gate
-  - opennebula-flow
 
 - name: Wait for OpenNebula to be ready
   wait_for:
@@ -64,12 +58,9 @@
 - name: Display OpenNebula status
   debug:
     msg: |
-      OpenNebula frontend is running
-      ==============================
+      OpenNebula server is running
+      =============================
       OpenNebula API Port: 2633
-      Sunstone Web Port: 9869
-      OneGate Port: 5030
-      OneFlow Port: 2474
 
       Check status:
         systemctl status opennebula
