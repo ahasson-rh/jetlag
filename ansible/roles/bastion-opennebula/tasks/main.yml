@@ -9,7 +9,6 @@
     mode: '0755'
   loop:
   - /var/lib/opennebula
-  - /var/lib/opennebula/.one
   - /var/log/opennebula
 
 - name: Stop existing OpenNebula container if running
