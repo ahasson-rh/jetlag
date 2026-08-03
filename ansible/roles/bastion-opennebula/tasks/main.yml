@@ -2,56 +2,41 @@
 # bastion-opennebula tasks
 # Bootstrap OpenNebula on the bastion for ACM spoke VM allocation
 
-- name: Create OpenNebula data directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-  loop:
-  - /var/lib/opennebula
-  - /var/log/opennebula
+- name: Add OpenNebula repository
+  yum_repository:
+    name: opennebula
+    description: OpenNebula Repository
+    baseurl: https://downloads.opennebula.io/repo/open.repo/7.2/redhat/
+    gpgcheck: yes
+    gpgkey: https://downloads.opennebula.io/repo/open.repo/RPM-GPG-KEY-OpenNebula
+    enabled: yes
 
-- name: Create OpenNebula database directory (SQLite)
-  file:
-    path: /var/lib/opennebula/db
-    state: directory
-    mode: '0700'
+- name: Install OpenNebula packages
+  yum:
+    name:
+    - opennebula
+    - opennebula-server
+    - opennebula-sunstone
+    - opennebula-gate
+    - opennebula-flow
+    state: present
 
-- name: Pull OpenNebula frontend container image
-  podman_image:
-    name: docker.io/opennebula/opennebula
-    pull: always
-  register: opennebula_image_pulled
-
-- name: Stop existing OpenNebula container if running
-  containers.podman.podman_container:
-    name: opennebula-frontend
-    state: absent
-  failed_when: false
-
-- name: Start OpenNebula frontend container
-  containers.podman.podman_container:
-    name: opennebula-frontend
-    image: docker.io/opennebula/opennebula:latest
+- name: Enable and start OpenNebula services
+  systemd:
+    name: "{{ item }}"
+    enabled: true
     state: started
-    restart_policy: always
-    network_mode: host
-    volumes:
-    - /var/lib/opennebula:/var/lib/one
-    - /var/log/opennebula:/var/log/one
-    env:
-      ONE_AUTH: /var/lib/one/.one/one_auth
-    ports:
-    - "6000:6000"
-    - "6001:6001"
-  register: opennebula_container_started
+  loop:
+  - opennebula
+  - opennebula-sunstone
+  - opennebula-gate
+  - opennebula-flow
 
 - name: Wait for OpenNebula to be ready
   wait_for:
-    port: 6000
-    delay: 5
-    timeout: 60
-  when: opennebula_container_started is changed
+    port: 2633
+    delay: 2
+    timeout: 30
 
 - name: Register hypervisors with OpenNebula
   shell: |
@@ -81,12 +66,13 @@
     msg: |
       OpenNebula frontend is running
       ==============================
-      Container: opennebula-frontend
-      API Port: 6000
-      Sunstone Port: 6001
+      OpenNebula API Port: 2633
+      Sunstone Web Port: 9869
+      OneGate Port: 5030
+      OneFlow Port: 2474
 
       Check status:
-        podman ps | grep opennebula-frontend
+        systemctl status opennebula
         onehost list
         onevnet list
 
