@@ -6,9 +6,9 @@
   yum_repository:
     name: opennebula
     description: OpenNebula Repository
-    baseurl: https://downloads.opennebula.io/repo/open.repo/7.2/redhat/
+    baseurl: https://downloads.opennebula.io/repo/7.2/RedHat/9/x86_64/
     gpgcheck: yes
-    gpgkey: https://downloads.opennebula.io/repo/open.repo/RPM-GPG-KEY-OpenNebula
+    gpgkey: https://downloads.opennebula.io/repo/repo.key
     enabled: yes
 
 - name: Install OpenNebula packages
