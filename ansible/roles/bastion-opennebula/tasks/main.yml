@@ -2,44 +2,40 @@
 # bastion-opennebula tasks
 # Bootstrap OpenNebula on the bastion for ACM spoke VM allocation
 
-- name: Add OpenNebula repository
-  yum_repository:
-    name: opennebula
-    description: OpenNebula Repository
-    baseurl: https://downloads.opennebula.io/repo/7.2/RedHat/9/x86_64/
-    gpgcheck: yes
-    gpgkey: https://downloads.opennebula.io/repo/repo.key
-    enabled: yes
-
-- name: Install OpenNebula dependencies
-  yum:
-    name:
-    - mysql-libs
-    - xmlrpc-c-devel
-    - sqlite-devel
-    - libcurl-devel
-    state: present
-
-- name: Install OpenNebula packages
-  yum:
-    name:
-    - opennebula
-    - opennebula-server
-    state: present
-
-- name: Enable and start OpenNebula services
-  systemd:
-    name: "{{ item }}"
-    enabled: true
-    state: started
+- name: Create OpenNebula data directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
   loop:
-  - opennebula
+  - /var/lib/opennebula
+  - /var/lib/opennebula/.one
+  - /var/log/opennebula
+
+- name: Stop existing OpenNebula container if running
+  containers.podman.podman_container:
+    name: opennebula-frontend
+    state: absent
+  failed_when: false
+
+- name: Start OpenNebula frontend container
+  containers.podman.podman_container:
+    name: opennebula-frontend
+    image: docker.io/opennebula/opennebula:7.2.0
+    state: started
+    restart_policy: always
+    network_mode: host
+    volumes:
+    - /var/lib/opennebula:/var/lib/one
+    - /var/log/opennebula:/var/log/one
+  register: opennebula_container_started
 
 - name: Wait for OpenNebula to be ready
   wait_for:
     port: 2633
-    delay: 2
-    timeout: 30
+    delay: 5
+    timeout: 60
+  when: opennebula_container_started is changed
 
 - name: Register hypervisors with OpenNebula
   shell: |
@@ -67,12 +63,13 @@
 - name: Display OpenNebula status
   debug:
     msg: |
-      OpenNebula server is running
-      =============================
-      OpenNebula API Port: 2633
+      OpenNebula frontend is running
+      ==============================
+      Container: opennebula-frontend
+      API Port: 2633
 
       Check status:
-        systemctl status opennebula
+        podman ps | grep opennebula-frontend
         onehost list
         onevnet list
 
