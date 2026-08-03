@@ -11,6 +11,15 @@
     gpgkey: https://downloads.opennebula.io/repo/repo.key
     enabled: yes
 
+- name: Install OpenNebula dependencies
+  yum:
+    name:
+    - mysql-libs
+    - xmlrpc-c-devel
+    - sqlite-devel
+    - libcurl-devel
+    state: present
+
 - name: Install OpenNebula packages
   yum:
     name:
