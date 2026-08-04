@@ -20,7 +20,7 @@
 - name: Start OpenNebula frontend container
   containers.podman.podman_container:
     name: opennebula-frontend
-    image: docker.io/opennebula/opennebula:7.4.0
+    image: docker.io/opennebula/opennebula:7.2.0
     state: started
     restart_policy: always
     network_mode: host
