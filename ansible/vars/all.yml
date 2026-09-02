@@ -203,8 +203,8 @@ hv_vm_cpu_count: 4
 hv_vm_memory_size: 8
 hv_vm_disk_size: 100
 controlplane_localstorage_lvm_devices:
-  - /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:1:0
-  - /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:2:0
+  - /dev/disk/by-path/pci-0000:67:00.0-scsi-0:2:1:0
+  - /dev/disk/by-path/pci-0000:67:00.0-scsi-0:2:2:0
 controlplane_localstorage_lv_count: 20
 controlplane_localstorage_lv_size: 200G
 controlplane_etcd_on_nvme: true
@@ -217,5 +217,10 @@ gitops_channel: gitops-1.21
 
 wait_until_cluster_stable: false
 remove_assisted_installer_namespace: true
+
+setup_bastion_registry: true
+use_bastion_registry: true
+sync_operator_index: true
+sync_ocp_release: true
 
 # setup_bastion_minio: true
