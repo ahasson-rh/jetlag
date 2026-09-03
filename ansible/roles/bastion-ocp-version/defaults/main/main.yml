@@ -10,3 +10,4 @@ http_store_host: "{{ groups['bastion'][0] }}"
 http_store_port: 8081
 
 ocp_version_path: /opt/ocp-version
+payload_url: ""
