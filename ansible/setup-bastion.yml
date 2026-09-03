@@ -54,8 +54,8 @@
 
   - name: Handle Sync Operator Index configurations and execution
     when:
-      - setup_bastion_registry
-      - sync_operator_index | default(false)
+    - setup_bastion_registry
+    - sync_operator_index | default(false)
     block:
     - name: Load specific sync-operator-index variables
       ansible.builtin.include_vars:
@@ -69,8 +69,8 @@
     ansible.builtin.include_role:
       name: sync-ocp-release
     when:
-      - setup_bastion_registry
-      - sync_ocp_release | default(false)
+    - setup_bastion_registry
+    - sync_ocp_release | default(false)
 
   - name: Execute bastion-proxy role
     ansible.builtin.include_role:
