@@ -82,7 +82,6 @@
       metadata:
         name: assisted-installer
   when: remove_assisted_installer_namespace
-  when: remove_assisted_installer_namespace
 
 - name: Apply post-install labels to worker node(s)
   shell: |
