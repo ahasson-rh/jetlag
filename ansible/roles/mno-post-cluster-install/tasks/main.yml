@@ -73,8 +73,10 @@
   when: wait_until_cluster_stable | bool
 
 - name: Remove assisted-installer namespace
-  shell: |
-    KUBECONFIG={{ bastion_cluster_config_dir }}/kubeconfig oc delete ns assisted-installer
+  environment:
+    KUBECONFIG: "{{ bastion_cluster_config_dir }}/kubeconfig"
+  ansible.builtin.shell: |
+    oc delete namespace assisted-installer --ignore-not-found=true
   when: remove_assisted_installer_namespace
 
 - name: Apply post-install labels to worker node(s)
@@ -125,8 +127,10 @@
   when: setup_performance_dashboards | bool
 
 - name: Add kube-burner sa
-  shell: |
-    KUBECONFIG={{ bastion_cluster_config_dir }}/kubeconfig oc create sa kubeburner
+  environment:
+    KUBECONFIG: "{{ bastion_cluster_config_dir }}/kubeconfig"
+  ansible.builtin.shell: |
+    oc create sa kubeburner --dry-run=client -o yaml | oc apply -f -
   when: setup_kube_burner_sa | default(true) | bool
 
 - name: Add cluster-admin role to kube-burner sa
