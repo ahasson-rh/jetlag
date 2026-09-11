@@ -83,3 +83,4 @@ vnuma_enabled: false
 
 # Enable IGB NICs for VMs
 vm_igb_nics: false
+base_dns_name: rdu2.scalelab.redhat.com

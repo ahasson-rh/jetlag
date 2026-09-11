@@ -201,7 +201,7 @@ hv_ip_offset: 25
 hv_ssh_pass: ********
 hv_vm_cpu_count: 4
 hv_vm_memory_size: 8
-hv_vm_disk_size: 100
+hv_vm_disk_size: 120
 controlplane_localstorage_lvm_devices:
   - /dev/disk/by-path/pci-0000:67:00.0-scsi-0:2:1:0
   - /dev/disk/by-path/pci-0000:67:00.0-scsi-0:2:2:0
