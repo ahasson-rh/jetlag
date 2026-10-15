@@ -76,11 +76,11 @@ ansible-playbook ansible/hv-vm-replace.yml
 # Sync OpenShift releases
 ansible-playbook ansible/sync-ocp-release.yml
 
-# Deploy MinIO object storage on the bastion (set setup_bastion_minio: true in all.yml first)
-ansible-playbook -i ansible/inventory/cloud99.local ansible/bastion-minio.yml
+# Deploy RustFS object storage on the bastion (set setup_bastion_object_store: true in all.yml first)
+ansible-playbook -i ansible/inventory/cloud99.local ansible/bastion-object-store.yml
 
-# Clean all MinIO data between cluster deployments (wipes data, recreates empty buckets)
-ansible-playbook -i ansible/inventory/cloud99.local ansible/bastion-minio-clean.yml
+# Clean all RustFS data between cluster deployments (wipes data, recreates empty buckets)
+ansible-playbook -i ansible/inventory/cloud99.local ansible/bastion-object-store-clean.yml
 ```
 
 ## Project Architecture
@@ -103,7 +103,7 @@ ansible-playbook -i ansible/inventory/cloud99.local ansible/bastion-minio-clean.
 ### Ansible Role Structure
 Jetlag uses a modular Ansible role architecture:
 
-- **Bastion roles**: `bastion-*` roles configure the bastion host with services like Assisted Installer, DNS, registry
+- **Bastion roles**: `bastion-*` roles configure the bastion host with services like Assisted Installer, DNS, registry, HAProxy
 - **Installation roles**: `install-cluster`, `sno-post-cluster-install` handle cluster deployment
 - **Hypervisor roles**: `hv-*` roles manage VM infrastructure on hypervisor nodes
 - **Utility roles**: `boot-iso`, `sync-*` roles provide supporting functionality
@@ -165,6 +165,17 @@ Jetlag uses a modular Ansible role architecture:
 - SNO deployments create one cluster per available machine after bastion
 - Public VLAN support available for routable environments (`public_vlan: true`)
 - Disconnected/air-gapped deployments supported with registry mirroring
+- HAProxy on bastion provides cluster access (API/GUI) for connected IPv4 private networks and disconnected IPv6 clusters (see `docs/bastion-haproxy.md`)
+
+### Storage Configuration
+- **Default Storage Class**: Jetlag automatically sets a default storage class based on configuration:
+  - When ODF is enabled (`setup_odf: true`), `ocs-storagecluster-cephfs` is marked as default (RWX-capable, preferred for telco hub use cases)
+  - When only LSO is enabled with LVM devices, `localstorage-sc` becomes the default
+  - When only LSO is enabled with disk devices, `localstorage-disk-sc` becomes the default
+  - Override automatic selection by explicitly setting `default_storage_class` variable in `all.yml`
+  - Disable automatic default with `set_default_storage_class: false`
+- **LSO (Local Storage Operator)**: Provides local persistent storage via LVM volumes or raw block devices (see [docs/local-storage.md](docs/local-storage.md))
+- **ODF (OpenShift Data Foundation)**: Provides Ceph-backed block, file, and object storage for MNO clusters (see [docs/odf.md](docs/odf.md))
 
 ### Virtual and Hybrid Cluster Considerations
 - **Hardware Requirements**: VMNO requires additional CPU/memory capacity for VM overhead
@@ -192,11 +203,16 @@ When encountering issues with Jetlag deployments, consult these comprehensive do
   - LocalVolume resources (`localvolume-lvm`, `localvolume-disk`) and their storage classes
   - Configuration examples for common scenarios
 
-- **[docs/bastion-minio.md](docs/bastion-minio.md)**: MinIO object storage setup and usage covering:
+- **[docs/bastion-object-store.md](docs/bastion-object-store.md)**: RustFS object storage setup and usage covering:
   - Variables and configuration options
-  - Deploying MinIO via `setup-bastion.yml` or standalone `bastion-minio.yml`
+  - Deploying RustFS via `setup-bastion.yml` or standalone `bastion-object-store.yml`
   - Accessing the S3 API (port 9000) and web console (port 9001)
-  - Cleaning MinIO data between cluster deployments with `bastion-minio-clean.yml`
+  - Cleaning RustFS data between cluster deployments with `bastion-object-store-clean.yml`
+
+- **[docs/bastion-haproxy.md](docs/bastion-haproxy.md)**: HAProxy cluster access configuration covering:
+  - Connected IPv4 MNO clusters on private networks (manual setup)
+  - Disconnected IPv6 MNO clusters (automatic via bastion registry/proxy)
+  - Laptop /etc/hosts configuration for proxied cluster access
 
 - **[docs/tips-and-vars.md](docs/tips-and-vars.md)**: Advanced configuration guidance including:
   - Network interface configuration and overrides

@@ -62,7 +62,7 @@ Versions:
 * Ansible 4.10+ (core >= 2.11.12) (on machine running jetlag playbooks)
 * ibmcloud cli => 2.0.1 (IBMcloud environments)
 * ibmcloud plugin install sl (IBMcloud environments)
-* RHEL >= 8.6 (Bastion)
+* RHEL >= 9.4 (Bastion and Hypervisor nodes)
 * podman 3 / 4 (Bastion)
 
 Installing Ansible via bootstrap (requires python3-pip)
@@ -215,7 +215,7 @@ xxxxx-xxxxx-xxxxx-xxxxx
 | Document | Description |
 | -------- | ----------- |
 | [Bastion Mirror Registry](docs/bastion-registry.md) | Mirror registry setup, image mirroring, and bandwidth limiting |
-| [Bastion MinIO](docs/bastion-minio.md) | Deploying S3-compatible object storage on the bastion |
+| [Bastion Object Storage (RustFS)](docs/bastion-object-store.md) | Deploying S3-compatible object storage on the bastion |
 | [CI](docs/ci.md) | Continuous integration details |
 | [Custom CatalogSources](docs/custom-catalogsources.md) | Custom operator catalogs and per-operator CatalogSource overrides |
 | [Disconnected API/Console Access](docs/disconnected-ipv6-cluster-access.md) | Accessing disconnected IPv6 clusters |

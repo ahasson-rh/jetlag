@@ -37,10 +37,12 @@ hw_vendor:
   r640: Dell
   r650: Dell
   r660: Dell
+  r670: Dell
   r730xd: Dell
   r740xd: Dell
   r750: Dell
   r760: Dell
+  r770: Dell
   r930: Dell
   fc640: Dell
   r6526: Dell
@@ -48,6 +50,7 @@ hw_vendor:
   r7425: Dell
   r7525: Dell
   r7625: Dell
+  r7725: Dell
   xe8640: Dell
   xe9680: Dell
   1029u: Supermicro
@@ -72,11 +75,13 @@ hw_install_disk:
   scalelab:
     r750: /dev/disk/by-path/pci-0000:05:00.0-ata-1
     r660: /dev/disk/by-path/pci-0000:4a:00.0-scsi-0:0:1:0
+    r670: /dev/disk/by-path/pci-0000:d4:00.0-scsi-0:0:1:0
     r650: /dev/disk/by-path/pci-0000:67:00.0-scsi-0:2:0:0
     r640: /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:0:0
     r630: /dev/disk/by-path/pci-0000:02:00.0-scsi-0:2:0:0
     r6625: /dev/disk/by-path/pci-0000:41:00.0-scsi-0:0:1:0
   performancelab:
+    r650: /dev/disk/by-path/pci-0000:65:00.0-scsi-0:3:104:0
     r740xd: /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:0:0
     y37-r740xd: /dev/disk/by-path/pci-0000:86:00.0-scsi-0:2:0:0
     y37-h01-r740xd: /dev/disk/by-path/pci-0000:18:00.0-scsi-0:2:0:0
@@ -86,7 +91,9 @@ hw_install_disk:
     r750: /dev/disk/by-path/pci-0000:05:00.0-ata-1
     r7425: /dev/disk/by-path/pci-0000:e2:00.0-scsi-0:2:0:0
     r7525: /dev/disk/by-path/pci-0000:01:00.0-scsi-0:2:0:0
+    r7725: /dev/disk/by-path/pci-0000:81:00.0-nvme-1
     r760: /dev/disk/by-path/pci-0000:3f:00.0-scsi-0:0:1:0
+    r770: /dev/disk/by-path/pci-0000:41:00.0-nvme-1
     6029p: /dev/disk/by-path/pci-0000:00:11.5-ata-5
     xe8640: /dev/disk/by-path/pci-0000:01:00.0-nvme-1
     xe9680: /dev/disk/by-path/pci-0000:01:00.0-nvme-1
@@ -131,6 +138,13 @@ hw_nic_name:
     - ens2f0
     - ens2f1
     - eno12409np1
+    r670:
+    - eno16795np0
+    - eno16595np0
+    - eno16605np1
+    - eno16895np0
+    - eno16905np1
+    - eno16805np1
     r6625:
     - eno12399np0
     - ens2f0
@@ -225,6 +239,19 @@ hw_nic_name:
     - ens3f1
     - ens6f0
     - ens6f1
+    r770:
+    - eno17395np0
+    - eno17095np0
+    - eno16695np0
+    - eno16705np1
+    - eno17415np2
+    - eno17425np3
+    r7725:
+    - eno17395np0
+    - eno16595np0
+    - eno16605np1
+    - eno16695np0
+    - eno16705np1
 
 # Based on VM Size (8vCPU, 18GiB Memory, 120G Disk)
 hw_vm_counts:
@@ -240,6 +267,9 @@ hw_vm_counts:
       default: 4
       nvme0n1: 23
     r660:
+      default: 4
+      nvme0n1: 23
+    r670:
       default: 4
       nvme0n1: 23
     r6625:
@@ -280,6 +310,9 @@ hw_vm_counts:
       default: 8
       sdc: 12
   performancelab:
+    r650:
+      default: 0
+      nvme0n1: 9
     r740xd:
       default: 4
       nvme0n1: 5
@@ -289,6 +322,11 @@ hw_vm_counts:
     r760:
       default: 4
       nvme0n1: 30
+    # nvme0n1 is the boot disk (BOSS-N1) on r770, the spare disks start at
+    # nvme1n1
+    r770:
+      default: 6
+      nvme1n1: 24
 
 # # Based on VM Size (8vCPU, 28GiB Memory, 120G Disk)
 # hw_vm_counts:

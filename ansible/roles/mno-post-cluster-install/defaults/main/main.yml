@@ -59,11 +59,6 @@ prometheus_retention_period: 15d
 prometheus_storage_class: localstorage-sc
 prometheus_storage_size: 50Gi
 
-# Minio deployment is an object storage pod for use with ACM
-setup_minio: false
-minio_image_tag: RELEASE.2025-09-07T16-13-09Z
-minio_pv_storageclass: localstorage2-sc
-
 # Custom CatalogSources to apply post-install
 # Each entry creates a CatalogSource resource in openshift-marketplace
 # custom_catalogsources:
@@ -80,3 +75,15 @@ idms_prega_configuration: "{{ bastion_cluster_config_dir }}/catalogsources/prega
 post_install_node_labels:
 - jetlag=true
 # - cluster.ocs.openshift.io/openshift-storage=
+
+# Set default storage class automatically based on storage configuration
+# When enabled, automatically marks one storage class as default:
+#   - If setup_odf: true → ocs-storagecluster-cephfs (RWX-capable filesystem storage)
+#   - If setup_lso: true with LVM devices → localstorage-sc (filesystem storage)
+#   - If setup_lso: true with disk devices only → localstorage-disk-sc (block storage)
+# Override by setting default_storage_class to a specific storage class name
+set_default_storage_class: true
+
+# Explicitly set the default storage class name (leave empty for auto-detection)
+# Examples: ocs-storagecluster-cephfs, ocs-storagecluster-ceph-rbd, localstorage-sc
+default_storage_class: ""

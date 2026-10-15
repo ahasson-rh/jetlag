@@ -23,7 +23,7 @@ setup_bastion_registry: true
 use_bastion_registry: true
 ```
 
-The registry is deployed during `setup-bastion.yml` as a Podman pod named `registry` with a container named `bastion-registry`, listening on port 5000. It stores data under `/opt/registry/` on the bastion host.
+The registry is deployed during `setup-bastion.yml` as a Podman pod named `registry` with a container named `bastion-registry`, listening on port 5000. It stores data under `/opt/jetlag/registry/` on the bastion host (configurable via `registry_path`).
 
 ## Syncing an operator index
 
@@ -98,7 +98,7 @@ spec:
 For on-demand mirroring, the next command run on the bastion will mirror the image from quay.io to perf176b's disconnected registry.
 
 ```console
-(.ansible) [root@<bastion> jetlag]# oc image mirror -a /opt/registry/pull-secret-bastion.txt perf176b.xxx.com:5000/XXX/client-server:<tag> --keep-manifest-list --continue-on-error=true
+(.ansible) [root@<bastion> jetlag]# oc image mirror -a /opt/jetlag/registry/pull-secret-bastion.txt perf176b.xxx.com:5000/XXX/client-server:<tag> --keep-manifest-list --continue-on-error=true
 ```
 Once the image has successfully mirrored onto the disconnected registry, your deployment will be able to create the container.
 
@@ -146,7 +146,7 @@ Simply add the `additional_images` list to your `ansible/vars/sync-operator-inde
 ```yaml
 # Sync extra container images directly (without renaming) into the destination registry.
 additional_images:
-- quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+- quay.io/rustfs/rustfs:1.0.0-rc.6
 - quay.io/namespace/image_name:example_tag
 ```
 
@@ -164,8 +164,8 @@ Simply add the `extra_images` list to your `ansible/vars/sync-operator-index.yml
 extra_images:
 - src: registry.redhat.io/openshift4/ztp-site-generate-rhel8:v4.21.0-2
   dest: openshift-kni/ztp-site-generator:v4.21.0-2
-- src: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
-  dest: minio/minio:RELEASE.2025-09-07T16-13-09Z
+- src: quay.io/rustfs/rustfs:1.0.0-rc.6
+  dest: rustfs/rustfs:1.0.0-rc.6
 ```
 
 **Automating ImageTagMirrorSet (ITMS) Creation**
